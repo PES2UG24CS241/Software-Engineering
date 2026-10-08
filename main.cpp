@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <limits>
 #include <conio.h>
+
 using namespace std;
 
 struct Account {
@@ -277,7 +278,13 @@ bool login(Account &loggedInAccount) {
 
     cout << "Enter Account Number: ";
     cin >> accountNumber;
+    if (cin.fail() || accountNumber <= 0) {
+    cin.clear();
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
+    cout << "\nInvalid account number.\n";
+    return false;
+}
     cout << "Enter PIN: ";
     pin = getMaskedPIN();
 
