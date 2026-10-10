@@ -6,7 +6,8 @@
 #include <cstdlib>
 #include <limits>
 #include <conio.h>
-
+#include <ctime>
+#include <sstream>
 using namespace std;
 
 struct Account {
@@ -15,6 +16,37 @@ struct Account {
     string pin;
     double balance;
 };
+
+// Record a transaction in persistent storage
+void recordTransaction(int accountNumber,
+                       string transactionType,
+                       double amount,
+                       double balanceAfterTransaction) {
+
+    ofstream file("transactions.txt", ios::app);
+
+    if (!file) {
+        cout << "\nError: Unable to open transaction file.\n";
+        return;
+    }
+
+    time_t now = time(0);
+    tm *localTime = localtime(&now);
+
+    char timestamp[30];
+
+    strftime(timestamp, sizeof(timestamp),
+             "%Y-%m-%d %H:%M:%S", localTime);
+
+    file << accountNumber << "|"
+         << timestamp << "|"
+         << transactionType << "|"
+         << fixed << setprecision(2) << amount << "|"
+         << fixed << setprecision(2)
+         << balanceAfterTransaction << "\n";
+
+    file.close();
+}
 
 // --------------------------------------------------
 // Generate a new account number
@@ -216,6 +248,7 @@ string getMaskedPIN() {
     return pin;
 }
 
+
 // --------------------------------------------------
 // Create Account
 // --------------------------------------------------
@@ -278,13 +311,7 @@ bool login(Account &loggedInAccount) {
 
     cout << "Enter Account Number: ";
     cin >> accountNumber;
-    if (cin.fail() || accountNumber <= 0) {
-    cin.clear();
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-    cout << "\nInvalid account number.\n";
-    return false;
-}
     cout << "Enter PIN: ";
     pin = getMaskedPIN();
 
@@ -340,6 +367,16 @@ void deposit(Account &account) {
     account.balance += amount;
 
     updateAccount(account);
+    account.balance += amount;
+
+    updateAccount(account);
+
+    recordTransaction(
+    account.accountNumber,
+    "DEPOSIT",
+    amount,
+    account.balance
+    );
 
     cout << "\nDeposit successful!\n";
 
@@ -406,6 +443,71 @@ void withdrawMoney(Account &account) {
     cout << "Updated Balance: Rs. "
          << fixed << setprecision(2)
          << account.balance << "\n";
+         account.balance -= amount;
+
+    updateAccount(account);
+
+    recordTransaction(
+    account.accountNumber,
+    "WITHDRAWAL",
+    amount,
+    account.balance
+    );
+}
+
+// Display saved transaction history
+void showTransactionHistory(int accountNumber) {
+
+    ifstream file("transactions.txt");
+
+    if (!file) {
+        cout << "\nNo transaction history available.\n";
+        return;
+    }
+
+    string line;
+    bool found = false;
+
+    cout << "\n====================================\n";
+    cout << "        TRANSACTION HISTORY\n";
+    cout << "====================================\n";
+
+    while (getline(file, line)) {
+
+        stringstream ss(line);
+
+        string storedAccount;
+        string timestamp;
+        string type;
+        string amount;
+        string balance;
+
+        getline(ss, storedAccount, '|');
+        getline(ss, timestamp, '|');
+        getline(ss, type, '|');
+        getline(ss, amount, '|');
+        getline(ss, balance, '|');
+
+      stringstream accountNumberStream;
+      accountNumberStream << accountNumber;
+
+      if (storedAccount == accountNumberStream.str()) {
+
+            cout << "\nDate: " << timestamp;
+            cout << "\nType: " << type;
+            cout << "\nAmount: Rs. " << amount;
+            cout << "\nBalance after transaction: Rs. "
+                 << balance << "\n";
+
+            found = true;
+        }
+    }
+
+    if (!found) {
+        cout << "\nNo transactions found for this account.\n";
+    }
+
+    file.close();
 }
 
 // --------------------------------------------------
@@ -426,6 +528,7 @@ void showBalance(Account account) {
     cout << "Current Balance: Rs. "
          << fixed << setprecision(2)
          << account.balance << "\n";
+    showTransactionHistory(account.accountNumber);
 }
 
 // --------------------------------------------------
