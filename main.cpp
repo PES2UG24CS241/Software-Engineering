@@ -13,11 +13,16 @@
 #include <limits>
 
 #include <conio.h>
+charan/sprint-1-balance-storage
 
 #include <sstream>
 
 #include <ctime>
 
+=======
+#include <ctime>
+#include <sstream>
+main
 using namespace std;
 
 struct Account {
@@ -32,12 +37,45 @@ struct Account {
 
 };
 
+ charan/sprint-1-balance-storage
 // Record a transaction after a successful balance update.
 void recordTransaction(int accountNumber,
                       string transactionType,
                       double amount,
                       double balanceAfterTransaction);
 
+=======
+// Record a transaction in persistent storage
+void recordTransaction(int accountNumber,
+                       string transactionType,
+                       double amount,
+                       double balanceAfterTransaction) {
+
+    ofstream file("transactions.txt", ios::app);
+
+    if (!file) {
+        cout << "\nError: Unable to open transaction file.\n";
+        return;
+    }
+
+    time_t now = time(0);
+    tm *localTime = localtime(&now);
+
+    char timestamp[30];
+
+    strftime(timestamp, sizeof(timestamp),
+             "%Y-%m-%d %H:%M:%S", localTime);
+
+    file << accountNumber << "|"
+         << timestamp << "|"
+         << transactionType << "|"
+         << fixed << setprecision(2) << amount << "|"
+         << fixed << setprecision(2)
+         << balanceAfterTransaction << "\n";
+
+    file.close();
+}
+main
 
 // --------------------------------------------------
 
@@ -325,6 +363,7 @@ string getMaskedPIN() {
 
 }
 
+
 // --------------------------------------------------
 
 // Create Account
@@ -412,6 +451,7 @@ bool login(Account &loggedInAccount) {
     cout << "Enter Account Number: ";
 
     cin >> accountNumber;
+ charan/sprint-1-balance-storage
 
     if (cin.fail() || accountNumber <= 0) {
 
@@ -425,6 +465,9 @@ bool login(Account &loggedInAccount) {
 
 }
 
+=======
+
+main
     cout << "Enter PIN: ";
 
     pin = getMaskedPIN();
@@ -497,7 +540,21 @@ account.balance += amount;
 
 updateAccount(account);
 
+charan/sprint-1-balance-storage
 recordTransaction(
+=======
+    updateAccount(account);
+    account.balance += amount;
+
+    updateAccount(account);
+
+    recordTransaction(
+    account.accountNumber,
+    "DEPOSIT",
+    amount,
+    account.balance
+    );
+main
 
     account.accountNumber,
 
@@ -610,7 +667,75 @@ cout << "\nWithdrawal successful!\n";
          << fixed << setprecision(2)
 
          << account.balance << "\n";
+charan/sprint-1-balance-storage
 
+=======
+         account.balance -= amount;
+
+    updateAccount(account);
+
+    recordTransaction(
+    account.accountNumber,
+    "WITHDRAWAL",
+    amount,
+    account.balance
+    );
+}
+
+// Display saved transaction history
+void showTransactionHistory(int accountNumber) {
+
+    ifstream file("transactions.txt");
+
+    if (!file) {
+        cout << "\nNo transaction history available.\n";
+        return;
+    }
+
+    string line;
+    bool found = false;
+
+    cout << "\n====================================\n";
+    cout << "        TRANSACTION HISTORY\n";
+    cout << "====================================\n";
+
+    while (getline(file, line)) {
+
+        stringstream ss(line);
+
+        string storedAccount;
+        string timestamp;
+        string type;
+        string amount;
+        string balance;
+
+        getline(ss, storedAccount, '|');
+        getline(ss, timestamp, '|');
+        getline(ss, type, '|');
+        getline(ss, amount, '|');
+        getline(ss, balance, '|');
+
+      stringstream accountNumberStream;
+      accountNumberStream << accountNumber;
+
+      if (storedAccount == accountNumberStream.str()) {
+
+            cout << "\nDate: " << timestamp;
+            cout << "\nType: " << type;
+            cout << "\nAmount: Rs. " << amount;
+            cout << "\nBalance after transaction: Rs. "
+                 << balance << "\n";
+
+            found = true;
+        }
+    }
+
+    if (!found) {
+        cout << "\nNo transactions found for this account.\n";
+    }
+
+    file.close();
+    main
 }
 
 // --------------------------------------------------
@@ -640,6 +765,7 @@ void showBalance(Account account) {
          << fixed << setprecision(2)
 
          << account.balance << "\n";
+charan/sprint-1-balance-storage
 
 }
 
@@ -751,6 +877,9 @@ void showTransactionHistory(int accountNumber) {
 
     file.close();
 
+=======
+    showTransactionHistory(account.accountNumber);
+main
 }
 
 // --------------------------------------------------
